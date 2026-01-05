@@ -9,8 +9,11 @@ This repository contains Terraform configurations for AWS infrastructure provisi
 ├── variables.tf         # Input variables
 ├── provider.tf          # AWS provider config
 ├── outputs.tf           # Output values
+├── destroy.sh           # Local destroy script
 ├── backend.tf           # Created dynamically per branch
 └── .github/workflows/   # GitHub Actions CI/CD
+    ├── terraform.yml    # Deploy workflow
+    └── destroy.yml      # Destroy workflow
 ```
 
 ## Branch Strategy
@@ -34,7 +37,7 @@ This repository contains Terraform configurations for AWS infrastructure provisi
 
 2. S3 Backend:
    - Bucket: `webkulterraformtfstate`
-   - Region: `ap-southeast-2`
+   - Region: `ap-southeast-1`
 
 ## Usage
 
@@ -56,12 +59,29 @@ git checkout main
 git push origin main  # Only stores code, no pipeline
 ```
 
+## Destroy Resources
+
+### Method 1: GitHub Actions (Recommended)
+1. Go to Actions tab in GitHub
+2. Select "Terraform Destroy" workflow
+3. Click "Run workflow"
+4. Select environment (staging/production)
+5. Type "DESTROY" to confirm
+
+### Method 2: Local Script
+```bash
+# Destroy staging environment
+./destroy.sh staging
+
+# Destroy production environment
+./destroy.sh production
+```
+
 ## Resources Created
 
 - EC2 Instance (web server)
-  - Production: t3.micro
+  - Production: t3.medium
   - Staging: t2.micro
-- S3 Bucket (application storage with versioning)
 - Environment-specific tags
 
 ## State Management
@@ -75,3 +95,4 @@ Terraform state files are stored in S3:
 - **main branch**: No pipeline execution, code storage only
 - **live branch**: Creates production configs and deploys
 - **stage branch**: Creates staging configs and deploys
+- **destroy workflow**: Manual trigger to destroy resources
