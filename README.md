@@ -5,16 +5,26 @@ This repository contains Terraform configurations for AWS infrastructure provisi
 ## Structure
 
 ```
-├── environments/
-│   ├── production/     # Production environment
-│   └── staging/        # Staging environment
-└── .github/workflows/  # GitHub Actions CI/CD
+├── main.tf              # Common resources
+├── variables.tf         # Input variables
+├── provider.tf          # AWS provider config
+├── outputs.tf           # Output values
+├── backend.tf           # Created dynamically per branch
+└── .github/workflows/   # GitHub Actions CI/CD
 ```
 
-## Environments
+## Branch Strategy
 
-- **Staging**: Deploys when code is pushed to `staging` branch
-- **Production**: Deploys when code is pushed to `main` branch
+- **main**: Common Terraform code (no environment-specific configs)
+- **live**: Triggers production deployment with production backend
+- **stage**: Triggers staging deployment with staging backend
+
+## How It Works
+
+1. **Main Branch**: Contains common Terraform code
+2. **Live/Stage Branches**: Pipeline creates environment-specific configs:
+   - `backend.tf` with appropriate S3 state path
+   - `terraform.tfvars` with environment variable
 
 ## Setup
 
@@ -28,26 +38,40 @@ This repository contains Terraform configurations for AWS infrastructure provisi
 
 ## Usage
 
-### Staging Deployment
+### Stage Environment Deployment
 ```bash
-git checkout staging
-git push origin staging
+git checkout -b stage
+git push origin stage
 ```
 
-### Production Deployment
+### Live Environment Deployment
+```bash
+git checkout -b live
+git push origin live
+```
+
+### Code Updates (No Deployment)
 ```bash
 git checkout main
-git push origin main
+git push origin main  # Only stores code, no pipeline
 ```
 
 ## Resources Created
 
 - EC2 Instance (web server)
-- S3 Bucket (application storage)
-- Tags for environment identification
+  - Production: t3.micro
+  - Staging: t2.micro
+- S3 Bucket (application storage with versioning)
+- Environment-specific tags
 
 ## State Management
 
 Terraform state files are stored in S3:
-- Production: `s3://webkulterraformtfstate/production/terraform.tfstate`
-- Staging: `s3://webkulterraformtfstate/staging/terraform.tfstate`
+- Live: `s3://webkulterraformtfstate/production/terraform.tfstate`
+- Stage: `s3://webkulterraformtfstate/staging/terraform.tfstate`
+
+## Pipeline Behavior
+
+- **main branch**: No pipeline execution, code storage only
+- **live branch**: Creates production configs and deploys
+- **stage branch**: Creates staging configs and deploys
