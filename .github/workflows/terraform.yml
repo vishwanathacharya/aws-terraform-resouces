@@ -1,0 +1,89 @@
+name: 'Terraform CI/CD'
+
+on:
+  push:
+    branches:
+      - main
+      - staging
+  pull_request:
+    branches:
+      - main
+      - staging
+
+env:
+  AWS_REGION: ap-southeast-2
+
+jobs:
+  terraform-staging:
+    if: github.ref == 'refs/heads/staging'
+    runs-on: ubuntu-latest
+    environment: staging
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: 1.6.0
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Terraform Init (Staging)
+      run: |
+        cd environments/staging
+        terraform init
+
+    - name: Terraform Plan (Staging)
+      run: |
+        cd environments/staging
+        terraform plan -var-file="terraform.tfvars"
+
+    - name: Terraform Apply (Staging)
+      if: github.event_name == 'push'
+      run: |
+        cd environments/staging
+        terraform apply -auto-approve -var-file="terraform.tfvars"
+
+  terraform-production:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: 1.6.0
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Terraform Init (Production)
+      run: |
+        cd environments/production
+        terraform init
+
+    - name: Terraform Plan (Production)
+      run: |
+        cd environments/production
+        terraform plan -var-file="terraform.tfvars"
+
+    - name: Terraform Apply (Production)
+      if: github.event_name == 'push'
+      run: |
+        cd environments/production
+        terraform apply -auto-approve -var-file="terraform.tfvars"
